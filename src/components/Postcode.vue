@@ -4,7 +4,7 @@
     <h1>Results for {{this.postcode}}</h1>
     <div class="timechange">
         <div class="calLabel">Choose another day, click below:</div>
-        <div class="calendar"><datepicker v-model="date" :disabled-dates='{from: new Date()}' @closed="datepickerClosedFunction"></datepicker></div>
+        <div class="calendar"><datepicker v-model="date" :disabled-dates='{from: new Date()}'></datepicker></div>
     </div>
     <div class="timechart">
         <canvas id="postcodeChart"></canvas>
@@ -24,76 +24,59 @@ export default {
   },
   props: ['postcode'],
   methods: {
-    datepickerClosedFunction(){},
-    createChart(labels, data) {
+    createChart() {
       const ctx = document.getElementById("postcodeChart");
       const myChart = new Chart(ctx, {
         type: 'line',
         data: {
-          labels: labels,
-            datasets: [
-              { 
-                label: 'Half Hourly Breakdown for '+ this.date.toLocaleDateString("en-UK",{ weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
-                data: data
-              }
-            ]
-            },
-        options: {
-          responsive: true
-        }
+          labels: this.postcodeData.map((time)=>{
+            return(time.from.substr(11, 5) )
+          }),
+          datasets: [
+            { 
+              label: 'Half Hourly Breakdown for '+ this.date.toLocaleDateString("en-UK",{ weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
+              data: this.postcodeData.map(time => time.intensity.forecast)
+          }]
+        },
+        options: {responsive: true}
       });
     }
   },
   data () {
-    
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
     return {
-
       postcodeData: null,
-      date: null
+      date: yesterday
     }
   },
    mounted() {
-    var yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    this.date = yesterday;
     const url = "https://api.carbonintensity.org.uk/regional/intensity/"+this.date.getFullYear()+ '-' + (this.date.getMonth()+1) + '-' +this.date.getDate()+"/fw24h/postcode/" + this.postcode;
      axios
       .get(url)
-      .then(response => {
-        this.postcodeData = response.data.data.data;
-        const labels = this.postcodeData.map((time)=>{
-            return(time.from.substr(11, 5) )
-        });
-        const data = response.data.data.data.map(time => time.intensity.forecast);
-        this.createChart(labels,data);
-        setTimeout(function(){ window.scrollTo(0,document.body.scrollHeight); }, 300);
+      .then(response => {this.postcodeData = response.data.data.data;
+        this.createChart();
+        setTimeout(function(){ window.scrollBy(0, document.body.scrollHeight); }, 0);
       })
       .catch(error => {
         console.log(error)
         this.errored = true
       })
-      .finally(() => this.loading = false)
+      .finally(() => this.loading = false);
+      
   },
 
   updated () {
     const url = "https://api.carbonintensity.org.uk/regional/intensity/"+this.date.getFullYear()+ '-' + (this.date.getMonth()+1) + '-' +this.date.getDate()+"/fw24h/postcode/" + this.postcode;
      axios
       .get(url)
-      .then(response => {
-        this.postcodeData = response.data.data.data;
-        const labels = this.postcodeData.map((time)=>{
-            return(time.from.substr(11, 5) )
-        });
-        const data = response.data.data.data.map(time => time.intensity.forecast);
-        
-        this.createChart(labels,data);
-        setTimeout(function(){ window.scrollTo(0,document.body.scrollHeight); }, 300);
+      .then(response => {this.postcodeData = response.data.data.data;
+        this.createChart();
       })
       .catch(error => {
         console.log(error)
         this.errored = true
       })
-      .finally(() => this.loading = false)
   }
 }
 </script>
