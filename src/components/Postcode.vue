@@ -4,7 +4,7 @@
     <h1>Results for {{this.postcode}}</h1>
     <div class="timechange">
         <div class="calLabel">Choose another day, click below:</div>
-        <div class="calendar"><datepicker></datepicker></div>
+        <div class="calendar"><datepicker v-model="date" :disabled-dates='{from: new Date()}' @closed="datepickerClosedFunction"></datepicker></div>
     </div>
     <div class="timechart">
         <canvas id="postcodeChart"></canvas>
@@ -24,6 +24,7 @@ export default {
   },
   props: ['postcode'],
   methods: {
+    datepickerClosedFunction(){},
     createChart(labels, data) {
       const ctx = document.getElementById("postcodeChart");
       const myChart = new Chart(ctx, {
@@ -32,9 +33,8 @@ export default {
           labels: labels,
             datasets: [
               { 
-                label: 'Hourly Breakdown for last 24 hours',
-                data: data,
-                borderWidth: 2
+                label: 'Half Hourly Breakdown for '+ this.date.toLocaleDateString("en-UK",{ weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
+                data: data
               }
             ]
             },
@@ -45,15 +45,19 @@ export default {
     }
   },
   data () {
+    
     return {
+
       postcodeData: null,
-      date: new Date()
+      date: null
     }
   },
-  mounted () {
+   mounted() {
+    var yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    this.date = yesterday;
     const url = "https://api.carbonintensity.org.uk/regional/intensity/"+this.date.getFullYear()+ '-' + (this.date.getMonth()+1) + '-' +this.date.getDate()+"/fw24h/postcode/" + this.postcode;
-    console.log(url);
-    axios
+     axios
       .get(url)
       .then(response => {
         this.postcodeData = response.data.data.data;
@@ -63,7 +67,27 @@ export default {
         const data = response.data.data.data.map(time => time.intensity.forecast);
         this.createChart(labels,data);
         setTimeout(function(){ window.scrollTo(0,document.body.scrollHeight); }, 300);
+      })
+      .catch(error => {
+        console.log(error)
+        this.errored = true
+      })
+      .finally(() => this.loading = false)
+  },
+
+  updated () {
+    const url = "https://api.carbonintensity.org.uk/regional/intensity/"+this.date.getFullYear()+ '-' + (this.date.getMonth()+1) + '-' +this.date.getDate()+"/fw24h/postcode/" + this.postcode;
+     axios
+      .get(url)
+      .then(response => {
+        this.postcodeData = response.data.data.data;
+        const labels = this.postcodeData.map((time)=>{
+            return(time.from.substr(11, 5) )
+        });
+        const data = response.data.data.data.map(time => time.intensity.forecast);
         
+        this.createChart(labels,data);
+        setTimeout(function(){ window.scrollTo(0,document.body.scrollHeight); }, 300);
       })
       .catch(error => {
         console.log(error)
@@ -86,14 +110,14 @@ h1 {
     margin: auto;
     width: 80%;
     padding-top: 0px;
-    min-width: 420px;
+    min-width: 380px;
 }
 .timechange{
     padding-top:10px;
     width:240px;
 }
 .calendar{
-    padding:5px 0px 20px 0px;
+    padding:5px 0px 20px 20px;
 }
 .sub{
     height:50px;

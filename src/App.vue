@@ -2,8 +2,8 @@
   
   <div id="app">
     <div class="header">
-      <div class="title">HTR Carbon Intensity Chart</div>
-      <div class="subtitle">Breakdown of UK Carbon Output Data</div>
+      <div class="title">Carbon Intensity Chart</div>
+      <div class="subtitle">Breakdown of total UK Carbon Output data</div>
     </div>
     <router-view/>
   </div>
